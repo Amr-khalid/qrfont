@@ -20,7 +20,130 @@
 }
 
 body {
-  background: var(--background);
+  background: black,
+    radial-gradient(
+      ellipse 120% 80% at 70% 20%,
+      rgba(255, 20, 147, 0.15),
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse 100% 60% at 30% 10%,
+      rgba(0, 255, 255, 0.12),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 90% 70% at 50% 0%,
+      rgba(138, 43, 226, 0.18),
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 110% 50% at 80% 30%,
+      rgba(255, 215, 0, 0.08),
+      transparent 40%
+    ),
+    #000000;
+  height: 100vh;
+  width: 100vw;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+.hue{
+  animation: hue 1s infinite;
+}
+@keyframes hue{
+  0%{
+    transform: scale(1);
+    filter: hue-rotate(0deg);
+        filter: drop-shadow(0 0 10px black);
+
+  }
+  50%{
+    transform: scale(1.1);
+    filter: hue-rotate(360deg);
+        filter: drop-shadow(0 0 10px rgb(30, 231, 70));
+
+  }
+  100%{
+    transform: scale(1);
+    filter: hue-rotate(0deg);
+        filter: drop-shadow(0 0 10px black);
+
+  }
+}
+.pings{
+  animation: 3s pings ease-in-out infinite;
+}
+@keyframes pings{
+  0%{
+    transform: scale(1.2);
+    opacity: .5;
+        filter: drop-shadow(0 0 10px black);
+
+  }
+  50%{
+    transform: scale(1);
+    opacity: 1;
+    color:red;
+        filter: drop-shadow(0 0 10px red);
+
+  }
+  100%{
+    transform: scale(.8);
+    opacity: 1;
+        filter: drop-shadow(0 0 10px rgb(247, 247, 247));
+
+  
+  }
+
+}
+.colors{
+  animation: 3s colors ease-in-out infinite;
+}
+@keyframes colors{
+  0%{
+    transform: skew(0deg);
+    filter: invert(.8);
+        filter: drop-shadow(0 0 10px white);
+
+
+  }
+  50%{
+ filter: invert(0);
+    opacity: 1;
+    transform: skewy(10deg);
+    filter: drop-shadow(0 0 10px black);
+   
+ 
+  }
+  100%{
+    opacity: 1;
+        filter: drop-shadow(0 0 10px black);
+
+  
+  }
+}
+.ver{
+  animation: 5s ver ease-in-out infinite;
+  filter: invert(1);
+}
+@keyframes ver{
+  0%{
+    transform: scale(1) rotatex(0deg);
+    filter: invert(0);
+        filter: drop-shadow(0 0 10px black);
+
+  }
+  50%{
+    transform: rotatex(100deg);
+    filter: invert(1);
+        filter: drop-shadow(0 0 10px rgba(1, 56, 255, 0.931));
+
+  }
+  100%{
+    transform: scale(1) rotatex(360deg);
+    filter: invert(1);
+        filter: drop-shadow(0 0 10px rgba(124, 101, 255, 0.574));
+
+  }
+
 }

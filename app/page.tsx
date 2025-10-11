@@ -1,103 +1,115 @@
-import Image from "next/image";
+"use client";
+import React, { use, useEffect, useState } from "react";
+import Link from "next/link";
+import { BsQrCode } from "react-icons/bs";
+import { RiQrScan2Line } from "react-icons/ri";
+import { FaFileDownload } from "react-icons/fa";
+import axios from "axios";
+import toast from "react-hot-toast";
+import { IoMdStats } from "react-icons/io";
+import { CiLogout } from "react-icons/ci";
 
-export default function Home() {
+export default function Home() {  
+   const [userId, setUser] = useState<string>("");
+   const [user, setUsers] = useState<string>("");
+
+    useEffect(() => {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const id = parsed?.data?.data?._id || "";
+        setUser(id);
+        setUsers(parsed?.data?.data?.name);
+      }
+    }, []);
+  const handleDownload = async () => {
+    if (!userId) {
+      toast.error("يرجى تسجيل الدخول اولا");
+      return;
+    }
+
+    try {
+      const res = await axios.get(`http://localhost:5000/api/export/excel`, {
+        params: { userId }, // يضيف userId في الـ query string تلقائيًا
+        responseType: "blob", // مهم جدًا علشان ينزل الملف كـ Blob
+      });
+
+      // 👇 تحويل Blob إلى رابط وتنزيل الملف
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `scans-${userId}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("✅ تم تحميل ملف Excel بنجاح");
+    } catch (err) {
+      console.error(err);
+      toast.error("لا يوجد عناصر في الملف Excel");
+    }
+  };
+
+   console.log(user);
+   
+ 
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="font-semibold mt-6 md:mt-0 grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
+      {userId ? (
+        <span className=" fixed top-0 left-0">Hello {user}</span>
+      ) : (
+        <Link href="/Login" className=" fixed top-0 left-0">
+          Login
+        </Link>
+      )}
+      {userId && <CiLogout className=" fixed bottom-0 left-0"  size={30} onClick={()=>{localStorage.removeItem("user");location.reload()}}/>}
+      <Link
+        href="/generate"
+        className="flex flex-col  items-center animate-bouncee"
+      >
+        <BsQrCode size={80} className="colors" />
+        Create QR
+      </Link>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      <button
+        onClick={handleDownload}
+        className="flex flex-col items-center animate-bounce"
+      >
+        <FaFileDownload
+          size={80}
+          color="white"
+          className="animate-bounce hue"
+        />
+        تحميل Excel
+      </button>
+
+      <Link href="/scan" className="flex flex-col items-center">
+        <RiQrScan2Line size={100} color="white" className="pings" />
+        Scan QR
+      </Link>
+
+      <button
+        onClick={async () => {
+          try {
+            await axios.post("http://localhost:5000/api/drop", {
+              id: JSON.parse(localStorage.getItem("user") as string)?.data?.data
+                ?._id,
+            });
+            toast.success("🗑️ تم حذف بيانات Excel بنجاح");
+          } catch (err) {
+            toast.error("لا يمكن حذف بيانات Excel حاليا");
+          }
+        }}
+        className="font-bold fixed bottom-0 right-0 p-4 text-red-500"
+      >
+        drop excel
+      </button>
+      <Link href="/stats" className="flex flex-col items-center">
+        <IoMdStats size={100} className=" ver" />
+        Statistics
+      </Link>
     </div>
   );
 }
