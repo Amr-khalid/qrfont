@@ -169,7 +169,7 @@ export default function ScanPage() {
         <div className="relative w-80 h-80 flex items-center justify-center flex-col">
           <div
             id={qrRegionId}
-            className="w-64 h-48 border-1 border-violet-500/50 rounded-xl shadow-violet-700/50 shadow-2xl overflow-hidden bg-gray-900/50"
+            className="w-64 h-48 border-2 border-violet-500/10 rounded-xl shadow-violet-700/50 shadow-2xl overflow-hidden bg-gray-900/50"
           />
           <motion.div
             initial={{ y: -100 }}
