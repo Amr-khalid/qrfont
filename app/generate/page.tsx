@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -25,13 +25,21 @@ type FormData = z.infer<typeof formSchema>;
 export default function GeneratePage() {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("");
+  const [userId, setUser] = useState<string>("");
 
   // ✅ قراءة userId من localStorage
-  const userId =
-    JSON.parse(localStorage.getItem("user") as string)?.data?.data?._id || "";
-if(!userId){
-  window.location.href = "/Login";
-}
+useEffect(() => {
+  
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      const id = parsed?.data?.data?._id || "";
+      setUser(id);
+    }
+  
+}, []);
+
+
   // ✅ تهيئة النموذج
   const {
     register,
