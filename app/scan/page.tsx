@@ -1,7 +1,5 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
-// We will load the scanner library dynamically, so the import is removed.
-// import { Html5Qrcode, Html5QrcodeError, Html5QrcodeResult } from "html5-qrcode";
 import axios from "axios";
 import { motion } from "framer-motion";
 
@@ -10,8 +8,6 @@ import { motion } from "framer-motion";
 declare global {
   interface Window {
     Html5Qrcode: any;
-    Html5QrcodeError: any;
-    Html5QrcodeResult: any;
   }
 }
 
@@ -29,92 +25,131 @@ interface StudentRecord {
   course?: string;
 }
 
+// SVG Icon for the camera switch button
+const SwitchCameraIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5" />
+    <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5" />
+    <path d="m17 16-4-4 4-4" />
+    <path d="m7 8 4 4-4 4" />
+  </svg>
+);
+
 export default function ScanPage() {
   const [userId, setUser] = useState<string>("");
   const [record, setRecord] = useState<StudentRecord | null>(null);
   const [status, setStatus] = useState<string>("جاري تحميل الماسح الضوئي...");
   const [scriptLoaded, setScriptLoaded] = useState(false);
+
+  // State for camera management
+  const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+
   const qrRegionId = "reader";
   const scanningRef = useRef(false);
   const html5QrCodeRef = useRef<any | null>(null);
 
-  // Effect to dynamically load the html5-qrcode library script from a CDN
+  // Effect to dynamically load the html5-qrcode library script
   useEffect(() => {
     const script = document.createElement("script");
-    script.src = "https://unpkg.com/html5-qrcode"; // CDN link for the library
+    script.src = "https://unpkg.com/html5-qrcode";
     script.async = true;
     script.onload = () => setScriptLoaded(true);
-    script.onerror = () =>
-      setStatus("❌ فشل في تحميل الماسح الضوئي. يرجى تحديث الصفحة.");
+    script.onerror = () => setStatus("❌ فشل تحميل الماسح. يرجى تحديث الصفحة.");
     document.body.appendChild(script);
 
     return () => {
-      // Clean up the script when the component unmounts
       document.body.removeChild(script);
     };
   }, []);
 
-  // 1. Get user ID from localStorage or redirect
+  // 1. Get user ID from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) {
       const parsed = JSON.parse(stored);
-      const id = parsed?.data?.data?._id || "";
-      setUser(id);
+      setUser(parsed?.data?.data?._id || "");
     } else {
-      // If no user is found, redirect to the Login page
       window.location.href = "/Login";
     }
   }, []);
 
-  // 2. Start the camera scanner ONLY when userId is available AND the script has loaded
+  // 2. Discover available cameras once the script is loaded
   useEffect(() => {
-    if (!userId || !scriptLoaded) return;
+    if (!scriptLoaded) return;
 
-    setStatus("جاري تهيئة الكاميرا...");
+    const Html5Qrcode = window.Html5Qrcode;
+    Html5Qrcode.getCameras()
+      .then((devices: { id: string; label: string }[]) => {
+        if (devices && devices.length) {
+          setCameras(devices);
+          // Prefer the back camera ('environment') first
+          const backCamera = devices.find(
+            (device) =>
+              device.label.toLowerCase().includes("back") ||
+              device.label.toLowerCase().includes("rear")
+          );
+          if (backCamera) {
+            setSelectedCameraId(backCamera.id);
+          } else {
+            // Otherwise, just use the first camera in the list
+            setSelectedCameraId(devices[0].id);
+          }
+        }
+      })
+      .catch((err: any) => {
+        console.error("Error fetching cameras:", err);
+        setStatus("❌ لم نتمكن من الوصول للكاميرات.");
+      });
+  }, [scriptLoaded]);
 
-    // The library is now available on the window object
+  // 3. Start or restart the scanner when the selected camera changes
+  useEffect(() => {
+    if (!userId || !scriptLoaded || !selectedCameraId) return;
+
+    // Stop any existing scanner before starting a new one
+    if (html5QrCodeRef.current?.isScanning) {
+      html5QrCodeRef.current.stop();
+    }
+
     const Html5Qrcode = window.Html5Qrcode;
     const html5QrCode = new Html5Qrcode(qrRegionId);
     html5QrCodeRef.current = html5QrCode;
 
     const startScanner = async () => {
+      setStatus("جاري تهيئة الكاميرا...");
       try {
-        const cameras = await Html5Qrcode.getCameras();
-        if (cameras && cameras.length) {
-          const cameraId = cameras[0].id;
-          setStatus("يرجى توجيه الكاميرا إلى رمز QR");
-
-          await html5QrCode.start(
-            cameraId,
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 250 },
-            },
-            (decodedText: string, result: any) => {
-              if (scanningRef.current) return;
-              scanningRef.current = true;
-              setStatus("📡 جارٍ التحقق من الكود...");
-              handleScanSuccess(decodedText);
-            },
-            (errorMessage: string, error: any) => {
-              // This callback is for when a QR code is not found, we can ignore it.
-            }
-          );
-        } else {
-          setStatus("❌ لم يتم العثور على أي كاميرا.");
-        }
+        await html5QrCode.start(
+          selectedCameraId,
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText: string) => {
+            if (scanningRef.current) return;
+            scanningRef.current = true;
+            setStatus("📡 جارٍ التحقق من الكود...");
+            handleScanSuccess(decodedText);
+          },
+          () => {} // Ignore non-decode errors
+        );
+        setStatus("يرجى توجيه الكاميرا إلى رمز QR");
       } catch (err) {
         if (err instanceof Error) {
           if (err.name === "NotAllowedError") {
             setStatus(
-              "🚫 تم رفض إذن الوصول إلى الكاميرا. يرجى السماح بالوصول في إعدادات المتصفح ثم تحديث الصفحة."
+              "🚫 تم رفض إذن الوصول. يرجى السماح به في إعدادات المتصفح."
             );
           } else {
             setStatus(`❌ خطأ في تشغيل الكاميرا: ${err.message}`);
           }
-        } else {
-          setStatus("❌ حدث خطأ غير معروف أثناء تشغيل الكاميرا.");
         }
       }
     };
@@ -124,11 +159,20 @@ export default function ScanPage() {
     return () => {
       if (html5QrCodeRef.current?.isScanning) {
         html5QrCodeRef.current.stop().catch((err: any) => {
-          console.error("فشل في إيقاف الماسح الضوئي.", err);
+          console.error("فشل في إيقاف الماسح.", err);
         });
       }
     };
-  }, [userId, scriptLoaded]);
+  }, [userId, scriptLoaded, selectedCameraId]);
+
+  const handleSwitchCamera = () => {
+    if (cameras.length < 2) return;
+    const currentIndex = cameras.findIndex(
+      (cam) => cam.id === selectedCameraId
+    );
+    const nextIndex = (currentIndex + 1) % cameras.length;
+    setSelectedCameraId(cameras[nextIndex].id);
+  };
 
   const handleScanSuccess = async (qrMessage: string) => {
     try {
@@ -136,12 +180,10 @@ export default function ScanPage() {
         "https://vqr-741l.vercel.app/api/scan/",
         { payload: qrMessage, deviceId: "web-camera-1" }
       );
-
       await axios.post("https://vqr-741l.vercel.app/api/users/addToList", {
         userId,
         scanRecordId: response.data.record._id,
       });
-
       setRecord(response.data.record);
       setStatus("✅ تم تسجيل الحضور بنجاح!");
       if (html5QrCodeRef.current?.isScanning) {
@@ -169,20 +211,31 @@ export default function ScanPage() {
         <div className="relative w-80 h-80 flex items-center justify-center flex-col">
           <div
             id={qrRegionId}
-            className="w-64 h-48 border-2 border-violet-500/10 rounded-xl shadow-violet-700/50 shadow-2xl overflow-hidden bg-gray-900/50"
+            className="w-64 h-48 border-4 border-violet-500/20 rounded-xl shadow-violet-700/50 shadow-2xl overflow-hidden bg-gray-900/50"
           />
           <motion.div
             initial={{ y: -100 }}
-            animate={{ y: 100 }}
+            animate={{ y: 90 }}
             transition={{
               repeat: Infinity,
-              duration: 1.8,
+              duration: 1.1,
               repeatType: "reverse",
               ease: "easeInOut",
             }}
             className="absolute w-64 h-[3px] bg-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.8)]"
           />
         </div>
+      )}
+
+      {/* --- Camera Switch Button --- */}
+      {cameras.length > 1 && !record && (
+        <button
+          onClick={handleSwitchCamera}
+          className="mt-4 flex items-center gap-2 bg-white/10 px-4 py-2 rounded-lg text-sm hover:bg-white/20 transition-colors"
+        >
+          <SwitchCameraIcon />
+          تبديل الكاميرا
+        </button>
       )}
 
       {status && (
