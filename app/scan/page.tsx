@@ -66,10 +66,13 @@ export default function ScanPage() {
               );
 
               // 🔹 ربط السجل بالمستخدم
-              await axios.post("https://vqr-741l.vercel.app/api/users/addToList", {
-                userId,
-                scanRecordId: response.data.record._id,
-              });
+              await axios.post(
+                "https://vqr-741l.vercel.app/api/users/addToList",
+                {
+                  userId,
+                  scanRecordId: response.data.record._id,
+                }
+              );
 
               setRecord(response.data.record);
               setStatus("تم الحفظ");
@@ -79,6 +82,10 @@ export default function ScanPage() {
               setStatus("❌ حدث خطأ أثناء الحفظ");
               scanningRef.current = false;
             }
+          },
+          // This is the missing 4th argument for scan errors
+          (errorMessage) => {
+            // You can ignore these errors or log them for debugging.
           }
         );
       })
@@ -88,10 +95,10 @@ export default function ScanPage() {
       html5QrCode.stop().catch(() => {});
     };
   }, [userId]);
-  console.log(userId);
-  if (!userId) {
-    window.location.href = "/Login";
-  }
+
+  // if (typeof window !== "undefined" && !userId) {
+  //   window.location.href = "/Login";
+  // }
 
   return (
     <motion.div

@@ -3,18 +3,17 @@ import axios from "axios";
 import { Search } from "lucide-react";
 import { useState } from "react";
 import {
-  BarChart,
   Bar,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Legend,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  CartesianGrid,
   Area,
-  ComposedChart,
-  Line,
-  Cell,
 } from "recharts";
 
 interface StudentRecord {
@@ -86,18 +85,20 @@ export default function AttendanceDashboard() {
     0
   );
 
-const colors = [
-  "#60A5FA", // 💙 أزرق سماوي ناعم
-  "#34D399", // 💚 أخضر زمردي
-  "#FBBF24", // 💛 أصفر دافئ
-  "#F472B6", // 💖 وردي باستيل
-  "#ffffff", // 💜 بنفسجي فاتح
-  "#f00DF8", // 💧 تركواز مشرق
-  "#F87171", // ❤️ أحمر وردي مريح
-  "#4ADE80", // 🌿 أخضر منعش
-  "#084FC", // 💜 بنفسجي باستيل جميل
-  "#FDBA74", // 🧡 برتقالي دافئ
-];
+  // Corrected and enhanced color palette
+  const colors = [
+    "#60A5FA", // Blue
+    "#34D399", // Green
+    "#FBBF24", // Yellow
+    "#F472B6", // Pink
+    "#A78BFA", // Purple
+    "#2DD4BF", // Teal
+    "#F87171", // Red
+    "#4ADE80", // Lime
+    "#818CF8", // Indigo
+    "#FDBA74", // Orange
+  ];
+
   return (
     <div className="p-6 text-white">
       <h2 className="text-2xl font-bold mb-6 text-center">
@@ -110,17 +111,17 @@ const colors = [
           type="text"
           placeholder="أدخل رقم الطالب"
           value={studentId}
-          onChange={(e) => {
-            setStudentId(e.target.value);
-            fetchRecords;
+          onChange={(e) => setStudentId(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") fetchRecords();
           }}
-          className="bg-transparent  rounded-b-2xl shadow-black shadow-2xl mb-2 w-full sm:w-1/3  p-2 rounded-lg border border-gray-400 focus:ring-2 focus:ring-blue-500 transition-all"
+          className="bg-transparent rounded-b-2xl shadow-black shadow-2xl mb-2 w-full sm:w-1/3 p-2 rounded-lg border border-gray-400 focus:ring-2 focus:ring-blue-500 transition-all"
         />
         <button
           onClick={fetchRecords}
-          className="bg-blue-900/10 shadow-black md:w-16 w-full flex justify-center rounded-full hover:bg-blue-700/20 hover:scale-105 transition-all duration-200 text-white px-4 py-2 shadow-md"
+          className="bg-blue-900/10 shadow-black w-full sm:w-auto flex justify-center rounded-full hover:bg-blue-700/20 hover:scale-105 transition-all duration-200 text-white px-4 py-2 shadow-md"
         >
-          <Search size={30}/>
+          <Search size={30} />
         </button>
       </div>
 
@@ -158,26 +159,26 @@ const colors = [
             <table className="table-auto w-full text-sm text-white text-center">
               <thead className="bg-gray-800/40">
                 <tr>
-                  <th className=" p-2">Student ID</th>
-                  <th className=" p-2">Name</th>
-                  <th className=" p-2">Section</th>
-                  <th className=" p-2">Course</th>
-                  <th className=" p-2">Attendance</th>
-                  <th className=" p-2">Team</th>
+                  <th className="p-2">Student ID</th>
+                  <th className="p-2">Name</th>
+                  <th className="p-2">Section</th>
+                  <th className="p-2">Course</th>
+                  <th className="p-2">Attendance</th>
+                  <th className="p-2">Team</th>
                 </tr>
               </thead>
               <tbody>
-                {records.map((rec) => (
+                {records.map((rec, index) => (
                   <tr
-                    key={rec.studentId}
+                    key={index} // Using index for a unique key
                     className="hover:bg-blue-800/20 transition-all duration-200 hover:scale-[1.01]"
                   >
-                    <td className=" p-2">{rec.studentId}</td>
-                    <td className=" p-2">{rec.name}</td>
-                    <td className=" p-2">{rec.section}</td>
-                    <td className=" p-2">{rec.course || "N/A"}</td>
-                    <td className=" p-2">{rec.attendance}</td>
-                    <td className=" p-2">{rec.team}</td>
+                    <td className="p-2">{rec.studentId}</td>
+                    <td className="p-2">{rec.name}</td>
+                    <td className="p-2">{rec.section}</td>
+                    <td className="p-2">{rec.course || "N/A"}</td>
+                    <td className="p-2">{rec.attendance}</td>
+                    <td className="p-2">{rec.team}</td>
                   </tr>
                 ))}
               </tbody>
@@ -196,18 +197,13 @@ const colors = [
                 className="bg-black/20 shadow-md shadow-black rounded-xl p-3"
               >
                 <ComposedChart data={chartData}>
-                  {/* شبكة الخلفية */}
                   <CartesianGrid strokeDasharray="4 4" stroke="#333" />
-
-                  {/* المحاور */}
                   <XAxis dataKey="course" stroke="#fff" />
                   <YAxis
                     stroke="#fff"
-                    allowDecimals={false} // 👈 يخلّي القيم أعداد صحيحة فقط
-                    tickFormatter={(value) => Math.round(value)} // تأكيد إنها أعداد صحيحة
+                    allowDecimals={false}
+                    tickFormatter={(value) => String(Math.round(value))} // ✅ FIX: Convert number to string
                   />
-
-                  {/* Tooltip */}
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "#1f1f1f",
@@ -215,29 +211,16 @@ const colors = [
                       color: "#fff",
                       border: "1px solid rgba(255,255,255,0.1)",
                     }}
-                    itemStyle={{
-                      color: "#00ffcc",
-                    }}
+                    itemStyle={{ color: "#00ffcc" }}
                     cursor={{ fill: "rgba(255, 255, 255, 0.1)" }}
                   />
-
-                  {/* Legend */}
-                  <Legend
-                    wrapperStyle={{
-                      color: "#fff",
-                    }}
-                  />
-
-                  {/* Area */}
+                  <Legend wrapperStyle={{ color: "#fff" }} />
                   <Area
                     type="monotone"
                     dataKey="attendance"
                     fill="rgba(120, 120, 255, 0.4)"
                     stroke="rgba(150, 150, 255, 0.8)"
                   />
-
-
-                  {/* Bar بألوان مختلفة */}
                   <Bar dataKey="attendance" barSize={35} radius={[8, 8, 0, 0]}>
                     {chartData.map((entry, index) => (
                       <Cell
@@ -246,8 +229,6 @@ const colors = [
                       />
                     ))}
                   </Bar>
-
-                  {/* Line */}
                   <Line
                     type="monotone"
                     dataKey="attendance"
