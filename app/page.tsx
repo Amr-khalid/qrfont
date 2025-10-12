@@ -29,7 +29,7 @@ export default function Home() {
     }
 
     try {
-      const res = await axios.get(`http://localhost:5000/api/export/excel`, {
+      const res = await axios.get(`https://vqr-741l.vercel.app/api/export/excel`, {
         params: { userId }, // يضيف userId في الـ query string تلقائيًا
         responseType: "blob", // مهم جدًا علشان ينزل الملف كـ Blob
       });
@@ -93,7 +93,7 @@ export default function Home() {
       <button
         onClick={async () => {
           try {
-            await axios.post("http://localhost:5000/api/drop", {
+            await axios.post("https://vqr-741l.vercel.app/api/drop", {
               id: JSON.parse(localStorage.getItem("user") as string)?.data?.data
                 ?._id,
             });
