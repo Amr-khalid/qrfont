@@ -38,11 +38,16 @@ const SwitchCameraIcon = () => (
     strokeLinecap="round"
     strokeLinejoin="round"
   >
-    <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5" />
-    <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5" />
-    <path d="m17 16-4-4 4-4" />
-    <path d="m7 8 4 4-4 4" />
+        <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5" />
+        <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5" />
+        <path d="m17 16-4-4 4-4" />
+        <path d="m7 8 4 4-4 4" /> {" "}
   </svg>
+);
+
+// Loadeer component
+const Loader = () => (
+  <div className="w-6 h-6 border-4 border-dashed rounded-full animate-spin border-violet-400"></div>
 );
 
 export default function ScanPage() {
@@ -50,16 +55,16 @@ export default function ScanPage() {
   const [record, setRecord] = useState<StudentRecord | null>(null);
   const [status, setStatus] = useState<string>("جاري تحميل الماسح الضوئي...");
   const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [geminiFeedback, setGeminiFeedback] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState(false); // State for camera management
 
-  // State for camera management
   const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
 
   const qrRegionId = "reader";
   const scanningRef = useRef(false);
-  const html5QrCodeRef = useRef<any | null>(null);
+  const html5QrCodeRef = useRef<any | null>(null); // Effect to dynamically load the html5-qrcode library script
 
-  // Effect to dynamically load the html5-qrcode library script
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://unpkg.com/html5-qrcode";
@@ -71,9 +76,8 @@ export default function ScanPage() {
     return () => {
       document.body.removeChild(script);
     };
-  }, []);
+  }, []); // 1. Get user ID from localStorage
 
-  // 1. Get user ID from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) {
@@ -82,9 +86,8 @@ export default function ScanPage() {
     } else {
       window.location.href = "/Login";
     }
-  }, []);
+  }, []); // 2. Discover available cameras once the script is loaded
 
-  // 2. Discover available cameras once the script is loaded
   useEffect(() => {
     if (!scriptLoaded) return;
 
@@ -92,8 +95,7 @@ export default function ScanPage() {
     Html5Qrcode.getCameras()
       .then((devices: { id: string; label: string }[]) => {
         if (devices && devices.length) {
-          setCameras(devices);
-          // Prefer the back camera ('environment') first
+          setCameras(devices); // Prefer the back camera ('environment') first
           const backCamera = devices.find(
             (device) =>
               device.label.toLowerCase().includes("back") ||
@@ -111,27 +113,35 @@ export default function ScanPage() {
         console.error("Error fetching cameras:", err);
         setStatus("❌ لم نتمكن من الوصول للكاميرات.");
       });
-  }, [scriptLoaded]);
+  }, [scriptLoaded]); // 3. Start or restart the scanner when the selected camera changes
 
-  // 3. Start or restart the scanner when the selected camera changes
   useEffect(() => {
-    if (!userId || !scriptLoaded || !selectedCameraId) return;
+    if (!userId || !scriptLoaded || !selectedCameraId) return; // Stop any existing scanner before starting a new one
 
-    // Stop any existing scanner before starting a new one
     if (html5QrCodeRef.current?.isScanning) {
       html5QrCodeRef.current.stop();
     }
 
     const Html5Qrcode = window.Html5Qrcode;
-    const html5QrCode = new Html5Qrcode(qrRegionId);
+    // --- OPTIMIZATION: Added `rememberLastUsedCamera: true` for better UX on revisit ---
+    const html5QrCode = new Html5Qrcode(qrRegionId, {
+      rememberLastUsedCamera: true,
+    });
     html5QrCodeRef.current = html5QrCode;
+
+    // --- OPTIMIZATION: Increased FPS and adjusted qrbox for faster scanning ---
+    const qrScannerConfig = {
+      fps: 30, // Increased frames per second
+      qrbox: { width: 280, height: 280 }, // Slightly larger scan box
+      aspectRatio: 1.0, // Ensures the camera feed isn't stretched
+    };
 
     const startScanner = async () => {
       setStatus("جاري تهيئة الكاميرا...");
       try {
         await html5QrCode.start(
           selectedCameraId,
-          { fps: 10, qrbox: { width: 250, height: 250 } },
+          qrScannerConfig, // Using the new optimized config
           (decodedText: string) => {
             if (scanningRef.current) return;
             scanningRef.current = true;
@@ -199,51 +209,95 @@ export default function ScanPage() {
     }
   };
 
+  const handleGenerateFeedback = async () => {
+    if (!record) return;
+
+    setIsGenerating(true);
+    setGeminiFeedback("");
+
+    const systemPrompt = `You are a friendly and encouraging teacher's assistant in Egypt. Write a short, personalized feedback message in Arabic for a student based on their attendance record. The message should be positive and encouraging, even if attendance is low. Keep it under 30 words. If attendance is 5 or more, congratulate them. If it's less than 5, gently encourage them to attend more to not miss out on important topics.`;
+    const userQuery = `Student Name: ${record.name}, Course: ${record.course}, Total Attendance Days: ${record.attendance}.`;
+    const apiKey = "";
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+    const payload = {
+      contents: [{ parts: [{ text: userQuery }] }],
+      systemInstruction: {
+        parts: [{ text: systemPrompt }],
+      },
+    };
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API call failed with status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (text) {
+        setGeminiFeedback(text);
+      } else {
+        setGeminiFeedback("لم نتمكن من إنشاء الملاحظات. حاول مرة أخرى.");
+      }
+    } catch (error) {
+      console.error("Error calling Gemini API:", error);
+      setGeminiFeedback(
+        "حدث خطأ أثناء الاتصال بالـ AI. يرجى التحقق من اتصالك بالإنترنت."
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="p-4 flex flex-col items-center justify-center min-h-screen text-white"
     >
-      <h2 className="text-xl font-bold mb-6">ماسح الأكواد QR</h2>
-
+     <h2 className="text-xl font-bold mb-6">ماسح الأكواد QR</h2>     {" "}
       {!record && (
-        <div className="relative w-80 h-80 flex items-center justify-center flex-col">
+        // --- UI ADJUSTMENT: Enlarged container for better visual alignment with scan box ---
+        <div className="relative w-80 h-60 flex items-center justify-center flex-col">
           <div
             id={qrRegionId}
-            className="w-64 h-48 border-4 border-violet-500/20 rounded-xl shadow-violet-700/50 shadow-2xl overflow-hidden bg-gray-900/50"
+            className="w-72 h-72 border-4 border-violet-500/20 rounded-xl shadow-violet-700/50 shadow-2xl overflow-hidden bg-gray-900/50"
           />
           <motion.div
-            initial={{ y: -100 }}
-            animate={{ y: 90 }}
+            initial={{ y: -110 }}
+            animate={{ y: 110 }}
             transition={{
               repeat: Infinity,
               duration: 1.1,
               repeatType: "reverse",
               ease: "easeInOut",
             }}
-            className="absolute w-64 h-[3px] bg-violet-500 shadow-[0_0_15px_rgba(139,92,246,0.8)]"
+            // --- UI ADJUSTMENT: Widened the animated scan line ---
+            className="absolute w-72 h-[3px] colorss shadow-[0_0_15px_rgba(139,92,246,0.8)]"
           />
         </div>
       )}
-
-      {/* --- Camera Switch Button --- */}
+      
       {cameras.length > 1 && !record && (
         <button
           onClick={handleSwitchCamera}
           className="mt-4 flex items-center gap-2 bg-white/10 px-4 py-2 rounded-lg text-sm hover:bg-white/20 transition-colors"
         >
-          <SwitchCameraIcon />
-          تبديل الكاميرا
+         <SwitchCameraIcon />          تبديل الكاميرا        {" "}
         </button>
       )}
-
       {status && (
         <p className="mt-4 text-center text-sm font-semibold bg-white/10 px-3 py-2 rounded-lg max-w-xs">
           {status}
         </p>
       )}
-
       {record && (
         <>
           <motion.div
@@ -252,7 +306,7 @@ export default function ScanPage() {
             className="w-full max-w-2xl mt-6"
           >
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse border border-white/30 shadow-black shadow-2xl text-sm text-center">
+              <table className="w-full oveflow-x-auto border-collapse border border-white/30 shadow-black shadow-2xl text-sm text-center">
                 <thead className="bg-white/10">
                   <tr>
                     <th className="border-b border-white/20 p-2">Student ID</th>
@@ -263,28 +317,56 @@ export default function ScanPage() {
                     <th className="border-b border-white/20 p-2">Attendance</th>
                   </tr>
                 </thead>
+               
                 <tbody>
                   <tr>
                     <td className="p-2">{record.studentId}</td>
-                    <td className="p-2">{record.name}</td>
-                    <td className="p-2">{record.section}</td>
-                    <td className="p-2">{record.team}</td>
-                    <td className="p-2">{record.course}</td>
+                     <td className="p-2">{record.name}</td> 
+                    <td className="p-2">{record.section}</td> 
+                    <td className="p-2">{record.team}</td> 
+                    <td className="p-2">{record.course}</td> 
                     <td className="p-2">{record.attendance}</td>
+                     {" "}
                   </tr>
+                 
                 </tbody>
+             
               </table>
+              
             </div>
+           
           </motion.div>
+          <div className="mt-6 flex flex-col items-center gap-4 w-full max-w-md">
+            {/* <button
+              onClick={handleGenerateFeedback}
+              disabled={isGenerating}
+              className="flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:bg-violet-900 disabled:cursor-not-allowed text-white px-5 py-2 rounded-full shadow-lg transition-all duration-300 w-full"
+            >
+              {isGenerating ? <Loader /> : "✨ إنشاء ملاحظات بالطالب"}
+            </button> */}
 
+            {geminiFeedback && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 bg-white/10 rounded-lg text-center w-full"
+              >
+                <p className="text-violet-300 font-semibold">ملاحظات AI:</p>
+                <p>{geminiFeedback}</p>
+              </motion.div>
+            )}
+          </div>
+                   {" "}
           <button
             className="mt-5 border-violet-600/10 shadow-violet-600 hover:-translate-y-1 border-2 text-white px-5 py-2 rounded-full shadow-lg transition-all duration-300"
             onClick={() => window.location.reload()}
           >
-            مسح كود آخر
+                        مسح كود آخر          {" "}
           </button>
+                 {" "}
         </>
       )}
+         {" "}
     </motion.div>
   );
 }

@@ -28,7 +28,7 @@ body {
     ),
     radial-gradient(
       ellipse 100% 60% at 30% 10%,
-      rgba(0, 255, 255, 0.12),
+      rgba(3, 67, 135, 0.332),
       transparent 60%
     ),
     radial-gradient(
@@ -38,7 +38,7 @@ body {
     ),
     radial-gradient(
       ellipse 110% 50% at 80% 30%,
-      rgba(255, 215, 0, 0.08),
+      rgba(38, 232, 235, 0.233),
       transparent 40%
     ),
     #000000;
@@ -46,6 +46,9 @@ body {
   width: 100vw;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+    animation: 5s aurora linear infinite;
+
+  
 }
 .hue{
   animation: hue 1s infinite;
@@ -143,6 +146,32 @@ body {
     transform: scale(1) rotatex(360deg);
     filter: invert(1);
         filter: drop-shadow(0 0 10px rgba(124, 101, 255, 0.574));
+
+  }
+
+}
+
+ 
+.colorss{
+  animation: 5s colorss linear infinite;
+}
+@keyframes colorss{
+  0%{
+    
+        filter: drop-shadow(0 0 10px black);   
+        background-color: rgba(253, 255, 253, 0.578);
+
+  }
+  50%{
+   filter: drop-shadow(0 0 10px rgba(1, 56, 255, 0.931));
+        background-color: rgba(151, 18, 185, 0.524);
+
+  }
+  100%{
+        filter: drop-shadow(0 0 10px rgb(255, 255, 255));
+        background-color: rgba(253, 255, 253, 0.539);
+
+  
 
   }
 

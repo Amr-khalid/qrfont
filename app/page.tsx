@@ -90,7 +90,7 @@ export default function Home() {
         Scan QR
       </Link>
 
-      <button
+      {/* <button
         onClick={async () => {
           try {
             await axios.post("https://vqr-741l.vercel.app/api/drop", {
@@ -105,7 +105,7 @@ export default function Home() {
         className="font-bold fixed bottom-0 right-0 p-4 text-red-500"
       >
         drop excel
-      </button>
+      </button> */}
       <Link href="/stats" className="flex flex-col items-center">
         <IoMdStats size={100} className=" ver" />
         Statistics
